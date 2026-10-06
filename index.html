@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>I Love You Thu Nguyệt</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body, html { width: 100%; height: 100%; overflow: hidden; background-color: #05020a; font-family: 'Georgia', serif; }
+        canvas { display: block; position: absolute; top: 0; left: 0; z-index: 1; }
+        #start-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(5, 2, 10, 0.95); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 10; cursor: pointer; transition: opacity 0.8s ease, visibility 0.8s ease; }
+        #start-overlay.hidden { opacity: 0; visibility: hidden; }
+        .heart-icon { font-size: 60px; color: #ff4d8d; animation: pulse 1.2s infinite alternate ease-in-out; margin-bottom: 20px; }
+        .start-text { color: #ffffff; font-size: 18px; letter-spacing: 2px; text-shadow: 0 0 10px #ff4d8d; text-align: center; padding: 0 20px; }
+        @keyframes pulse { 0% { transform: scale(0.9); opacity: 0.7; } 100% { transform: scale(1.2); opacity: 1; text-shadow: 0 0 20px #ff4d8d; } }
+    </style>
+</head>
+<body>
+    <div id="start-overlay">
+        <div class="heart-icon">❤️</div>
+        <div class="start-text">BẤM VÀO MÀN HÌNH ĐỂ MỞ QUÀ</div>
+    </div>
+    <audio id="bg-music" loop preload="auto">
+        <source src="https://cdn.pixabay.com/download/audio/2022/05/27/audio_1808fbf07a.mp3?filename=lofi-study-112191.mp3" type="audio/mpeg">
+    </audio>
+    <canvas id="canvas"></canvas>
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const overlay = document.getElementById('start-overlay');
+        const music = document.getElementById('bg-music');
+        let width = canvas.width = window.innerWidth;
+        let height = canvas.height = window.innerHeight;
+        window.addEventListener('resize', () => {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+            initParticles();
+        });
+        function heartEquation(t) {
+            const x = 16 * Math.pow(Math.sin(t), 3);
+            const y = -(13 * Math.cos(t) - 5 * Math.cos(2*t) - 2 * Math.cos(3*t) - Math.cos(4*t));
+            return { x, y };
+        }
+        let particles = [], assembled = false, textAlpha = 0, isStarted = false, heartScale = 1, heartBeatAngle = 0;
+        function initParticles() {
+            particles = [];
+            const numParticles = 800;
+            const scale = Math.min(width, height) / 35;
+            for (let i = 0; i < numParticles; i++) {
+                const t = Math.PI * 2 * (i / numParticles);
+                const pos = heartEquation(t);
+                const tx = width / 2 + pos.x * scale;
+                const ty = height / 2 + pos.y * scale + 20;
+                particles.push({
+                    x: Math.random() * width, y: Math.random() * height,
+                    baseTx: tx, baseTy: ty, tx: tx, ty: ty,
+                    size: Math.random() * 2.5 + 1,
+                    color: `hsl(${330 + Math.random() * 30}, 100%, ${65 + Math.random() * 25}%)`,
+                    alpha: Math.random() * 0.7 + 0.3, speed: Math.random() * 0.04 + 0.02
+                });
+            }
+        }
+        function animate() {
+            ctx.fillStyle = 'rgba(5, 2, 10, 0.2)';
+            ctx.fillRect(0, 0, width, height);
+            let arrivedCount = 0;
+            heartBeatAngle += 0.04;
+            heartScale = 1 + Math.sin(heartBeatAngle) * 0.05;
+            particles.forEach(p => {
+                const dx = p.baseTx - width / 2, dy = p.baseTy - height / 2;
+                p.tx = width / 2 + dx * heartScale;
+                p.ty = height / 2 + dy * heartScale;
+                p.x += (p.tx - p.x) * p.speed;
+                p.y += (p.ty - p.y) * p.speed;
+                ctx.save();
+                ctx.globalAlpha = p.alpha;
+                ctx.fillStyle = p.color;
+                ctx.shadowColor = p.color;
+                ctx.shadowBlur = 12;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+                if (Math.hypot(p.tx - p.x, p.ty - p.y) < 10) arrivedCount++;
+            });
+            if (arrivedCount > particles.length * 0.75) assembled = true;
+            if (assembled && textAlpha < 1) textAlpha += 0.008;
+            if (textAlpha > 0) {
+                const fontSize = Math.min(width * 0.055, 24);
+                ctx.save();
+                ctx.globalAlpha = textAlpha;
+                ctx.fillStyle = '#ffffff';
+                ctx.shadowColor = '#ff4d8d';
+                ctx.shadowBlur = 15;
+                ctx.font = `bold ${fontSize}px 'Georgia', serif`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'top';
+                ctx.fillText('I LOVE YOU THU NGUYỆT.', width / 2, 50);
+                ctx.restore();
+            }
+            requestAnimationFrame(animate);
+        }
+        overlay.addEventListener('click', () => {
+            if (!isStarted) {
+                isStarted = true;
+                music.play().catch(e => console.log(e));
+                overlay.classList.add('hidden');
+                initParticles();
+                animate();
+            }
+        });
+    </script>
+</body>
+</html>
